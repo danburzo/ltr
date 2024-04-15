@@ -1,0 +1,26 @@
+{
+  "name": "ltr",
+  "version": "1.0.0",
+  "description": "Command-line text segmenter",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danburzo/ltr.git"
+  },
+  "keywords": [
+    "text-segmentation"
+  ],
+  "author": "Dan Burzo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/danburzo/ltr/issues"
+  },
+  "homepage": "https://github.com/danburzo/ltr#readme",
+  "dependencies": {
+    "opsh": "^1.1.0"
+  }
+}
