@@ -52,6 +52,10 @@ Return unique values, removing any duplicates.
 
 Ignore case when performing operations. Causes values to be returned in lowercase.
 
+### `-I`, `--ignore-accents`
+
+Ignore diacritical marks when performing operations. Causes values to be returned without diacritical marks.
+
 ### `-c`, `--count`
 
 Count occurences of each unique value.

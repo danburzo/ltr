@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import opsh from 'opsh';
 
-const booleanOpts = ['h', 'help', 'v', 'version', 'u', 'unique', 'i', 'ignore-case', 'c', 'count', 'r', 'reverse', 's', 'sort'];
+const booleanOpts = ['h', 'help', 'v', 'version', 'u', 'unique', 'i', 'ignore-case', 'I', 'ignore-accents', 'c', 'count', 'r', 'reverse', 's', 'sort'];
 
 const args = opsh(process.argv.slice(2), booleanOpts);
 const commands = ['chars', 'words', 'sentences'];
@@ -67,11 +67,24 @@ function counter(segments, sort) {
 	return results.map(s => `${s}\t${dict[s]}`);
 }
 
+function unique(arr, compare) {
+	return [...new Set(arr)];
+}
+
+// See: https://en.wikipedia.org/wiki/Combining_Diacritical_Marks
+function basechars(str) {
+	return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
 function aggregator(options) {
 	const should_sort = options.s || options.sort;
 	const should_count = options.c || options.count;
+	const collator = new Intl.Collator(options.l || options.locale);
 
 	return function(segments) {
+		if (options.I || options['ignore-accents']) {
+			segments = segments.map(s => basechars(s));
+		}
 		if (options.i || options['ignore-case']) {
 			segments = segments.map(s => s.toLowerCase());
 		}
@@ -80,12 +93,12 @@ function aggregator(options) {
 				If counting, sorting by frequency 
 				happens _after_ the count.
 			*/
-			segments = segments.sort();
+			segments = segments.sort(collator.compare);
 		}
 		if (should_count) {
 			segments = counter(segments, should_sort);
 		} else if (options.u || options.unique) {
-			segments = [...new Set(segments)];
+			segments = unique(segments);
 		}
 		if (options.r || options.reverse) {
 			segments = segments.reverse();
@@ -161,6 +174,10 @@ Options:
     -i, --ignore-case
     	Ignore the case in operations.
     	All values are returned in lowercase.
+
+    -I, --ignore-accents
+    	Ignore diacritical marks in operations.
+    	All values are returned without diacritical marks.
 
     -c, --count
     	Count occurrences of each value.
