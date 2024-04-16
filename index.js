@@ -83,14 +83,15 @@ function aggregator(options) {
 	const should_sort = options.s || options.sort;
 	const should_total = options.t || options.total;
 	const should_count = should_total || options.c || options.count;
-	const collator = new Intl.Collator(options.l || options.locale);
+	const locale = options.l || options.locale;
+	const collator = new Intl.Collator(locale);
 
 	return function(segments) {
 		if (options.I || options['ignore-accents']) {
 			segments = segments.map(s => basechars(s));
 		}
 		if (options.i || options['ignore-case']) {
-			segments = segments.map(s => s.toLowerCase());
+			segments = segments.map(s => s.toLocaleLowerCase(locale));
 		}
 		if (should_sort && !should_count) {
 			/*
