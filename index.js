@@ -68,16 +68,22 @@ function counter(segments, sort) {
 }
 
 function aggregator(options) {
-	const sort = options.s || options.sort;
+	const should_sort = options.s || options.sort;
+	const should_count = options.c || options.count;
+
 	return function(segments) {
 		if (options.i || options['ignore-case']) {
 			segments = segments.map(s => s.toLowerCase());
 		}
-		if (options.s || options.sort) {
+		if (should_sort && !should_count) {
+			/*
+				If counting, sorting by frequency 
+				happens _after_ the count.
+			*/
 			segments = segments.sort();
 		}
-		if (options.c || options.count) {
-			segments = counter(segments, sort);
+		if (should_count) {
+			segments = counter(segments, should_sort);
 		} else if (options.u || options.unique) {
 			segments = [...new Set(segments)];
 		}

@@ -44,26 +44,24 @@ By default, `ltr` works with the current locale. An explicit locale can be speci
 ltr sentences --locale=ro my-doc.txt
 ```
 
-## `-u`, `--unique`
+### `-u`, `--unique`
 
 Return unique values, removing any duplicates.
 
-## `-i`, `--ignore-case`
+### `-i`, `--ignore-case`
 
 Ignore case when performing operations. Causes values to be returned in lowercase.
 
-## `-c`, `--count`
+### `-c`, `--count`
 
 Count occurences of each unique value.
 
-## `-s`, `--sort`
+### `-s`, `--sort`
 
 Sort the values. 
 
-## `-r`, `--reverse`
+When `--count` is present, values are sorted by occurrences, from most frequent to least. Otherwise values are sorted alphabetically in ascending order.
+
+### `-r`, `--reverse`
 
 Reverse the order of the values.
-
-## Open questions
-
-* Split by file?
