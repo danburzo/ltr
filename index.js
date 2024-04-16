@@ -3,10 +3,13 @@
 import { readFile } from 'node:fs/promises';
 import opsh from 'opsh';
 
-const args = opsh(process.argv.slice(2), ['h', 'help', 'v', 'version']);
+const booleanOpts = ['h', 'help', 'v', 'version', 'u', 'unique', 'i', 'ignore-case', 'c', 'count', 'r', 'reverse', 's', 'sort'];
+
+const args = opsh(process.argv.slice(2), booleanOpts);
+const commands = ['chars', 'words', 'sentences'];
 
 // Use the STDIN operand when none provided.
-const operands = [...args.operands];
+const [command, ...operands] = [...args.operands];
 if (!operands.length) {
 	operands.push('-');
 }
@@ -22,12 +25,81 @@ if (args.options.v || args.options.version) {
 	process.exit();
 }
 
-const results = await Promise.all(
-	operands
-		.map(it => (it === '-' ? slurp(process.stdin) : readFile(it, 'utf8')))
+if (!command || commands.indexOf(command) === -1) {
+	console.error(`Expecting a command, one of: ${commands.join(', ')}`);
+	process.exit(1);
+}
+
+function segmenter(command, locale) {
+	const GRANULARITIES = {
+		'chars': 'grapheme',
+		'words': 'word',
+		'sentences': 'sentence'
+	};
+	const segmenter = new Intl.Segmenter(locale, {
+		granularity: GRANULARITIES[command]
+	});
+	const ALL_WS = /^\s*$/
+	const filter_fn = command === 'words' ? s => s.isWordLike && !ALL_WS.test(s.segment) : s => !ALL_WS.test(s.segment);
+	return function(txt) {
+		return [...segmenter.segment(txt)]
+			.filter(filter_fn)
+			.map(s => s.segment.trim());
+	}
+}
+
+function counter(segments, sort) {
+	const dict = {};
+	let results = segments
+		.filter(s => {
+			if (dict[s] === undefined) {
+				dict[s] = 1;
+				return true;
+			}
+			dict[s] += 1;
+			return false;
+		});
+
+	if (sort) {
+		results = results.sort((a, b) => dict[b] - dict[a]);
+	}
+
+	return results.map(s => `${s}\t${dict[s]}`);
+}
+
+function aggregator(options) {
+	const sort = options.s || options.sort;
+	return function(segments) {
+		if (options.i || options['ignore-case']) {
+			segments = segments.map(s => s.toLowerCase());
+		}
+		if (options.s || options.sort) {
+			segments = segments.sort();
+		}
+		if (options.c || options.count) {
+			segments = counter(segments, sort);
+		} else if (options.u || options.unique) {
+			segments = [...new Set(segments)];
+		}
+		if (options.r || options.reverse) {
+			segments = segments.reverse();
+		}
+		return segments.join('\n');
+	}
+}
+
+const data = await Promise.all(
+	operands.map(
+		it => it === '-' ? slurp(process.stdin) : readFile(it, 'utf8')
+	)
 );
 
-console.log(results);
+const result = data
+	.map(segmenter(command, args.options.l || args.options.locale))
+	.map(aggregator(args.options))
+	.join('\n');
+
+console.log(result);
 
 async function getPackage() {
 	return JSON.parse(
@@ -44,7 +116,7 @@ async function outputHelp() {
 	console.log(`
 Usage:
   
-    ltr [options] [file1, [file2, ...]]
+    ltr [command] [options] [file1, [file2, ...]]
 
     Operands are one or more files provided by file path.
     Using '-' (dash) as an operand reads from the standard input (STDIN).
@@ -60,7 +132,41 @@ General options:
     -v, --version
         Output program version.
 
+Commands:
+	
+    chars
+        Split the input into characters (graphemes).
+
+    words
+        Split the input into words.
+
+    sentences
+        Split the input into sentences.
+
 Options:
+
+    -l <locale>, --locale=<locale>
+        Provide an explicit locale.
+    
+    -u, --unique
+    	Return unique values, 
+    	with any duplicates removed.
+
+    -i, --ignore-case
+    	Ignore the case in operations.
+    	All values are returned in lowercase.
+
+    -c, --count
+    	Count occurrences of each value.
+
+    -s, --sort
+    	Sorts the values. 
+    	If "--count" is present, sorts by count,
+    	otherwise sorts by value.
+
+    -r, --reverse
+    	Reverse the order of values.
+
 Examples:
 
 `);
