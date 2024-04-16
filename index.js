@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import opsh from 'opsh';
 
-const booleanOpts = ['h', 'help', 'v', 'version', 'u', 'unique', 'i', 'ignore-case', 'I', 'ignore-accents', 'c', 'count', 'r', 'reverse', 's', 'sort'];
+const booleanOpts = ['h', 'help', 'v', 'version', 'u', 'unique', 'i', 'ignore-case', 'I', 'ignore-accents', 'c', 'count', 't', 'total', 'r', 'reverse', 's', 'sort'];
 
 const args = opsh(process.argv.slice(2), booleanOpts);
 const commands = ['chars', 'words', 'sentences'];
@@ -48,7 +48,7 @@ function segmenter(command, locale) {
 	}
 }
 
-function counter(segments, sort) {
+function counter(segments, sort, total) {
 	const dict = {};
 	let results = segments
 		.filter(s => {
@@ -59,6 +59,9 @@ function counter(segments, sort) {
 			dict[s] += 1;
 			return false;
 		});
+	if (total) {
+		return [Object.values(dict).reduce((a, b) => a + b, 0)];
+	}
 
 	if (sort) {
 		results = results.sort((a, b) => dict[b] - dict[a]);
@@ -78,7 +81,8 @@ function basechars(str) {
 
 function aggregator(options) {
 	const should_sort = options.s || options.sort;
-	const should_count = options.c || options.count;
+	const should_total = options.t || options.total;
+	const should_count = should_total || options.c || options.count;
 	const collator = new Intl.Collator(options.l || options.locale);
 
 	return function(segments) {
@@ -96,7 +100,7 @@ function aggregator(options) {
 			segments = segments.sort(collator.compare);
 		}
 		if (should_count) {
-			segments = counter(segments, should_sort);
+			segments = counter(segments, should_sort, should_total);
 		} else if (options.u || options.unique) {
 			segments = unique(segments);
 		}
@@ -181,6 +185,9 @@ Options:
 
     -c, --count
     	Count occurrences of each value.
+
+    -t, --total
+    	Count total occurrences. Implies "--count".
 
     -s, --sort
     	Sorts the values. 
